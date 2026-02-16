@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-multipart
+pymupdf
+opencv-python
+jinja2

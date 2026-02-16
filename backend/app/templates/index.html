@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verifia-AI | Review 1 Prototype</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 40px; margin: 0; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .card { background: #1e293b; padding: 25px; border-radius: 15px; border: 1px solid #334155; position: relative; }
+        
+        /* VIDEO CONTAINER STYLING */
+        .video-container { position: relative; width: 100%; border-radius: 10px; overflow: hidden; border: 2px solid #3b82f6; }
+        video { width: 100%; background: black; transform: scaleX(-1); display: block; }
+        
+        /* SCANNING ANIMATION */
+        .scan-line { position: absolute; width: 100%; height: 2px; background: rgba(59, 130, 246, 0.5); top: 0; left: 0; animation: scan 3s linear infinite; box-shadow: 0 0 15px #3b82f6; z-index: 10; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .face-box { position: absolute; border: 2px solid #22c55e; width: 150px; height: 180px; top: 25%; left: 35%; border-radius: 5px; z-index: 11; transition: 0.3s; }
+
+        /* STATUS LOG */
+        #behavior-log { background: rgba(15, 23, 42, 0.8); padding: 10px; border-radius: 5px; margin-top: 10px; font-family: monospace; font-size: 0.85rem; height: 60px; border-left: 3px solid #22c55e; }
+        
+        button { background: #3b82f6; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 15px; font-weight: bold; }
+        #output { margin-top: 20px; color: #cbd5e1; background: #0f172a; padding: 15px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #3b82f6;">Verifia-AI: Recruitment Integrity Dashboard</h1>
+    
+    <div class="grid">
+        <div class="card">
+            <h2>Resume Gatekeeper</h2>
+            <input type="file" id="resFile" accept=".pdf">
+            <button onclick="upload()">Analyze Integrity</button>
+            <div id="output">Results will appear here...</div>
+        </div>
+
+        <div class="card">
+            <h2>Interview Validator (Vision Engine)</h2>
+            <div class="video-container">
+                <div class="scan-line"></div>
+                <div class="face-box" id="faceBox"></div>
+                <video id="webcam" autoplay playsinline></video>
+            </div>
+            <div id="behavior-log">
+                > System Initializing...<br>
+                > Awaiting Live Stream...
+            </div>
+            <div style="margin-top: 15px;">
+                <label>Behavioral Trust Score: <span id="scoreText">100%</span></label>
+                <div style="width: 100%; background: #334155; height: 10px; border-radius: 5px; margin-top: 5px;">
+                    <div id="scoreBar" style="width: 100%; height: 100%; background: #22c55e; border-radius: 5px; transition: 0.5s;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Start Webcam
+        navigator.mediaDevices.getUserMedia({ video: true }).then(s => { 
+            document.getElementById('webcam').srcObject = s; 
+            startMonitoring();
+        });
+
+        // SIMULATED VISION LOGIC
+        function startMonitoring() {
+            const logs = [
+                "Gaze Status: Center", "Emotion: Neutral", "Integrity: High",
+                "Gaze Status: Left (Checking Notes?)", "Status: Processing",
+                "Emotion: Confident", "Head Orientation: Stable"
+            ];
+            const logDiv = document.getElementById('behavior-log');
+            const scoreBar = document.getElementById('scoreBar');
+            const scoreText = document.getElementById('scoreText');
+            const faceBox = document.getElementById('faceBox');
+
+            setInterval(() => {
+                // Update Log
+                const randomLog = logs[Math.floor(Math.random() * logs.length)];
+                logDiv.innerHTML = `> Monitoring Active...<br>> ${randomLog}`;
+
+                // Fluctuate Trust Score
+                const randomScore = Math.floor(Math.random() * (100 - 85 + 1)) + 85;
+                scoreBar.style.width = randomScore + "%";
+                scoreText.innerText = randomScore + "%";
+
+                // Jitter the face box slightly to look like it's tracking
+                faceBox.style.transform = `translate(${Math.random() * 10}px, ${Math.random() * 10}px)`;
+                
+                // Change color if score is low
+                scoreBar.style.background = randomScore < 90 ? "#eab308" : "#22c55e";
+            }, 3000);
+        }
+
+        async function upload() {
+            let f = document.getElementById('resFile').files[0];
+            if(!f) return alert("Select a PDF!");
+            let fd = new FormData(); fd.append('file', f);
+            let res = await fetch('/verify', { method: 'POST', body: fd });
+            let data = await res.json();
+            
+            // Format Categorized Skills
+            let skillHtml = "<b>Detected Skills:</b><br>";
+            for (const [cat, skills] of Object.entries(data.categorized_skills)) {
+                skillHtml += `<b>${cat}:</b> ${skills.join(', ')}<br>`;
+            }
+
+            document.getElementById('output').innerHTML = `
+                ${skillHtml}<br>
+                <b>System Flags:</b> ${data.alerts.join(' | ') || '✅ Clean'}
+            `;
+        }
+    </script>
+</body>
+</html>
