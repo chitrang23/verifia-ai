@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verifia-AI | Integrity Intelligence</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --accent: #10b981;
+            --bg: #020617;
+            --card: #0f172a;
+            --text: #f8fafc;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 20% 30%, #0f172a, #020617 70%);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 25px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+
+        .hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 120px 20px 100px 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            line-height: 1.2;
+            margin-bottom: 25px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.8;
+            max-width: 650px;
+            margin-bottom: 40px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .cta-btn {
+            padding: 16px 35px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .primary-btn {
+            background: linear-gradient(90deg, var(--primary), #2563eb);
+            box-shadow: 0 0 25px rgba(59,130,246,0.4);
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(59,130,246,0.7);
+        }
+
+        .secondary-btn {
+            background: linear-gradient(90deg, var(--accent), #059669);
+            box-shadow: 0 0 25px rgba(16,185,129,0.4);
+        }
+
+        .secondary-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(16,185,129,0.7);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            padding: 80px 60px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .feature-card {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 14px;
+            border: 1px solid #1e293b;
+            transition: 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary);
+        }
+
+        .feature-card h3 {
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            opacity: 0.5;
+            font-size: 0.8rem;
+        }
+
+        .glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%);
+            top: -200px;
+            left: -200px;
+            animation: float 8s ease-in-out infinite alternate;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            from { transform: translateY(0px); }
+            to { transform: translateY(40px); }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="glow"></div>
+
+<header>
+    <div class="logo">VERIFIA AI</div>
+</header>
+
+<section class="hero">
+    <h1>Integrity Intelligence<br>for Modern Hiring</h1>
+    <p>
+        AI-driven resume auditing and real-time behavioral integrity analysis.
+        Choose your verification stage below.
+    </p>
+
+    <div class="button-group">
+        <!-- Resume Upload Window -->
+        <button class="cta-btn primary-btn"
+            onclick="window.open('/resume', '_blank')">
+            Resume Verification
+        </button>
+
+        <!-- Interview Window -->
+        <button class="cta-btn secondary-btn"
+            onclick="window.open('/interview', '_blank')">
+            Start Live Interview
+        </button>
+    </div>
+</section>
+
+<section class="features">
+    <div class="feature-card">
+        <h3>AI Resume Analysis</h3>
+        <p>
+            Deep parsing of resumes with automated skill extraction
+            and anomaly detection.
+        </p>
+    </div>
+
+    <div class="feature-card">
+        <h3>Behavioral Vision Engine</h3>
+        <p>
+            Real-time gaze tracking and integrity scoring during interviews.
+        </p>
+    </div>
+
+    <div class="feature-card">
+        <h3>Adaptive Interview Questions</h3>
+        <p>
+            Smart follow-up questions generated from resume insights.
+        </p>
+    </div>
+</section>
+
+<footer>
+    © 2026 Verifia AI — Integrity Intelligence Platform
+</footer>
+
+</body>
+</html>

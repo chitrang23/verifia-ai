@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verifia-AI | Integrity Terminal</title>
+
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --bg: #020617;
+            --card: #0f172a;
+            --text: #f8fafc;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin-bottom: 40px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid var(--primary);
+            transform: scaleX(-1);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        #output {
+            margin-top: 15px;
+            padding: 20px;
+            background: #000;
+            border-radius: 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Verifia-AI Production Terminal</h1>
+
+<div class="grid">
+
+    <!-- Resume Audit -->
+    <div class="card">
+        <h3>Audit Document</h3>
+        <input type="file" id="pdfFile" style="margin-bottom:15px; display:block;">
+        <button class="btn" onclick="startAudit()">Scan PDF</button>
+
+        <div id="output"></div>
+    </div>
+
+    <!-- Vision Scan -->
+    <div class="card">
+        <h3>Vision Scan</h3>
+        <video id="webcam" autoplay playsinline></video>
+
+        <div id="vision-log"
+             style="font-family:monospace; font-size:0.8rem; color:var(--accent); margin-top:10px;">
+            > STANDBY
+        </div>
+
+        <div style="margin-top:20px;">
+            <div style="display:flex; justify-content:space-between; font-size:0.8rem;">
+                <span>Behavioral Integrity</span>
+                <span id="trustText">100%</span>
+            </div>
+
+            <div style="background:#1e293b; height:10px; border-radius:5px; margin-top:10px;">
+                <div id="trustBar"
+                     style="width:100%; height:100%; background:var(--accent); transition:0.4s; border-radius:5px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    /* -------------------------
+       WebSocket Vision System
+    -------------------------- */
+
+    const socket = new WebSocket(`ws://${window.location.host}/ws/vision`);
+    const video = document.getElementById('webcam');
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        document.getElementById('vision-log').innerText = `> ${data.status}`;
+
+        const finalScore = data.score !== undefined ? data.score : 100;
+
+        document.getElementById('trustBar').style.width = finalScore + "%";
+        document.getElementById('trustText').innerText = Math.round(finalScore) + "%";
+
+        document.getElementById('trustBar').style.background =
+            finalScore < 65 ? 'var(--danger)' : 'var(--accent)';
+    };
+
+    function liveStream() {
+        if (socket.readyState === 1 && video.readyState === 4) {
+            canvas.width = 320;
+            canvas.height = 240;
+
+            context.drawImage(video, 0, 0, 320, 240);
+            socket.send(canvas.toDataURL('image/jpeg', 0.5));
+        }
+
+        setTimeout(liveStream, 250);
+    }
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+            video.onloadedmetadata = () => liveStream();
+        })
+        .catch(err => {
+            document.getElementById("vision-log").innerText = "> Camera access denied";
+        });
+
+
+    /* -------------------------
+       Resume Audit Function
+    -------------------------- */
+
+    async function startAudit() {
+
+        const fileInput = document.getElementById('pdfFile');
+
+        if (!fileInput.files.length) {
+            alert("Please select a PDF file first.");
+            return;
+        }
+
+        const fd = new FormData();
+        fd.append('file', fileInput.files[0]);
+
+        const res = await fetch('/verify', {
+            method: 'POST',
+            body: fd
+        });
+
+        const data = await res.json();
+
+        const out = document.getElementById('output');
+        out.style.display = "block";
+
+        out.innerHTML = `
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <b>Score: ${data.integrity_score}%</b>
+                <span style="color:var(--primary)">${data.primary_stream}</span>
+            </div>
+
+            <div style="color:var(--danger); font-size:0.8rem;">
+                ${(data.alerts || []).join('<br>')}
+            </div>
+
+            <div style="margin-top:15px; border-top:1px solid #1e293b; padding-top:10px;">
+                <b style="font-size:0.7rem; color:var(--primary)">
+                    AI Tactical Questions:
+                </b><br>
+
+                ${(data.tactical_questions || [])
+                    .map(q => `<div style="font-size:0.8rem; margin-top:5px;">• "${q}"</div>`)
+                    .join('')}
+            </div>
+        `;
+    }
+
+</script>
+
+</body>
+</html>

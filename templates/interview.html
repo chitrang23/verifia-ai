@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Interview Room</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #1e293b;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h2 {
+            margin: 0;
+        }
+
+        button {
+            padding: 8px 14px;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .back-btn {
+            background: #ef4444;
+            color: white;
+        }
+
+        .container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .left-panel {
+            width: 65%;
+        }
+
+        .right-panel {
+            width: 35%;
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .question-box {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+        }
+
+        .submit-btn {
+            margin-top: 10px;
+            background: #3b82f6;
+            color: white;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .score-box {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        .monitor-box {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #22c55e;
+        }
+
+        .end-btn {
+            margin-top: 20px;
+            background: #f97316;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h2>AI Interview Room</h2>
+    <button class="back-btn" onclick="goBack()">⬅ Exit Interview</button>
+</header>
+
+<div class="container">
+
+    <div class="left-panel">
+
+        <div class="question-box">
+            <h3 id="question">Loading Question...</h3>
+            <textarea id="answer" placeholder="Type your answer here..."></textarea>
+            <button class="submit-btn" onclick="submitAnswer()">Submit Answer</button>
+        </div>
+
+    </div>
+
+    <div class="right-panel">
+
+        <h3>Live Monitoring</h3>
+        <video id="video" autoplay></video>
+
+        <div class="monitor-box" id="vision-log">
+            > Monitoring behavioral stability
+        </div>
+
+        <div class="score-box">
+            <strong>Current Score:</strong>
+            <span id="score">0</span>
+        </div>
+
+        <button class="end-btn" onclick="endInterview()">End Interview</button>
+
+    </div>
+
+</div>
+
+<script>
+
+    let score = 0;
+
+    // BACK BUTTON CONFIRMATION
+    function goBack() {
+        if (confirm("Are you sure you want to exit the interview? Your progress will be lost.")) {
+            window.location.href = "/";
+        }
+    }
+
+    // LOAD FIRST QUESTION
+    window.onload = function () {
+        document.getElementById("question").innerText =
+            "Tell me about yourself and your technical background.";
+        startCamera();
+    }
+
+    // SUBMIT ANSWER
+    function submitAnswer() {
+        let answer = document.getElementById("answer").value;
+
+        if (answer.trim() === "") {
+            alert("Please enter your answer.");
+            return;
+        }
+
+        // Simulate scoring logic
+        score += Math.floor(Math.random() * 10) + 5;
+        document.getElementById("score").innerText = score;
+
+        document.getElementById("answer").value = "";
+
+        document.getElementById("question").innerText =
+            "Explain one challenging project you worked on.";
+    }
+
+    // END INTERVIEW
+    function endInterview() {
+        alert("Interview Completed! Final Score: " + score);
+        window.location.href = "/";
+    }
+
+    // START CAMERA
+    function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                document.getElementById("video").srcObject = stream;
+            })
+            .catch(error => {
+                console.log("Camera access denied.");
+            });
+    }
+
+let integrityScore = 100;
+let warningCount = 0;
+
+// TAB SWITCH DETECTION
+document.addEventListener("visibilitychange", function () {
+
+    if (document.hidden) {
+        warningCount++;
+        integrityScore -= 10;
+
+        if (integrityScore < 0) integrityScore = 0;
+
+        document.getElementById("score").innerText = integrityScore;
+
+        alert("Warning: Tab switching detected. This activity is monitored.");
+
+        console.log("Tab switch detected. Warning count:", warningCount);
+    }
+
+});
+
+// WINDOW BLUR DETECTION
+window.addEventListener("blur", function () {
+
+    warningCount++;
+    integrityScore -= 5;
+
+    if (integrityScore < 0) integrityScore = 0;
+
+    document.getElementById("score").innerText = integrityScore;
+
+    console.log("Window focus lost.");
+
+});
+if (integrityScore <= 50) {
+    alert("Interview terminated due to suspicious activity.");
+    window.location.href = "/";
+}
+</script>
+
+</body>
+</html>
