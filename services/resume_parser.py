@@ -3,59 +3,28 @@ import spacy
 import re
 import io
 import pytesseract
+import requests
 from PIL import Image
 from datetime import datetime
-from collections import defaultdict, Counter
 
-print("🔥 VERIFIA AI V3 RESUME INTELLIGENCE ENGINE")
-
-# ===============================
-# LOAD NLP MODEL
-# ===============================
+print("🔥 VERIFIA AI V6 LOADED")
 
 try:
     nlp = spacy.load("en_core_web_sm")
 except:
     nlp = None
 
-# ===============================
-# KNOWLEDGE BASE
-# ===============================
-
-SKILL_STREAMS = {
-    "Technology": ["python","java","react","fastapi","docker","kubernetes","aws","tensorflow"],
-    "Data Science": ["machine learning","deep learning","pandas","numpy","nlp"],
-    "Cybersecurity": ["penetration testing","siem","firewall","ethical hacking"],
-    "Finance": ["gst","taxation","audit","tally","financial modeling"],
-    "Marketing": ["seo","google ads","tiktok ads","branding","copywriting"],
-    "Design": ["figma","photoshop","illustrator","ui/ux"]
-}
-
-TECH_HISTORY = {
-    "fastapi":2018,
-    "gst":2017,
-    "flutter":2017,
-    "figma":2016,
-    "react":2013
-}
-
-BUZZWORDS = [
-    "innovative","dynamic","results-driven",
-    "strategic thinker","hardworking"
+COMMON_SKILLS = [
+"python","java","c++","javascript","react","node","fastapi","django",
+"docker","kubernetes","aws","azure","gcp",
+"pandas","numpy","machine learning","deep learning","nlp",
+"tensorflow","pytorch","sql","mongodb","postgresql",
+"git","linux","rest api","graphql"
 ]
 
-SECTION_HEADERS = [
-    "education",
-    "experience",
-    "projects",
-    "skills",
-    "certifications",
-    "achievements"
-]
-
-# ===============================
-# TEXT EXTRACTION
-# ===============================
+# ------------------------------
+# PDF TEXT EXTRACTION
+# ------------------------------
 
 def extract_text_from_pdf(file_bytes):
 
@@ -66,7 +35,6 @@ def extract_text_from_pdf(file_bytes):
         for page in doc:
             text += page.get_text()
 
-        # OCR fallback
         if len(text.strip()) < 50:
 
             text = ""
@@ -78,13 +46,12 @@ def extract_text_from_pdf(file_bytes):
 
         return text
 
-    except Exception as e:
-        print("PDF extraction error:", e)
+    except:
         return ""
 
-# ===============================
-# BASIC INFO EXTRACTION
-# ===============================
+# ------------------------------
+# BASIC INFO
+# ------------------------------
 
 def extract_basic_info(text):
 
@@ -94,10 +61,24 @@ def extract_basic_info(text):
     name = None
 
     if nlp:
+
         doc = nlp(text[:1000])
+
         for ent in doc.ents:
             if ent.label_ == "PERSON":
                 name = ent.text
+                break
+
+    if not name:
+
+        lines = text.split("\n")
+
+        for line in lines[:10]:
+
+            line = line.strip()
+
+            if len(line.split()) <= 4 and line[0].isupper():
+                name = line
                 break
 
     return {
@@ -106,258 +87,225 @@ def extract_basic_info(text):
         "phone": phone[0] if phone else None
     }
 
-# ===============================
-# SECTION EXTRACTION ENGINE
-# ===============================
-
-def extract_sections(text):
-
-    lower = text.lower()
-    sections = {}
-
-    for section in SECTION_HEADERS:
-
-        pattern = rf"{section}\s*(.*?)\n(?=[A-Z])"
-
-        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-
-        if match:
-            sections[section] = match.group(1).strip()
-
-    return sections
-
-# ===============================
-# SKILL DETECTION WITH CONFIDENCE
-# ===============================
+# ------------------------------
+# SKILLS
+# ------------------------------
 
 def detect_skills(text):
 
     clean = text.lower()
-    skill_counter = Counter()
 
-    detected = defaultdict(list)
+    detected = []
 
-    for stream, skills in SKILL_STREAMS.items():
+    for skill in COMMON_SKILLS:
 
-        for skill in skills:
-
-            count = len(re.findall(r"\b"+re.escape(skill)+r"\b", clean))
-
-            if count > 0:
-
-                confidence = min(100, count * 30)
-
-                detected[stream].append({
-                    "skill": skill,
-                    "confidence": confidence
-                })
-
-                skill_counter[skill] += count
+        if skill in clean:
+            detected.append(skill)
 
     return detected
 
-# ===============================
-# PRIMARY STREAM DETECTION
-# ===============================
+# ------------------------------
+# EXPERIENCE
+# ------------------------------
 
-def detect_primary_stream(detected):
-
-    best_stream = "General"
-    max_count = 0
-
-    for stream, skills in detected.items():
-
-        if len(skills) > max_count:
-            best_stream = stream
-            max_count = len(skills)
-
-    return best_stream
-
-# ===============================
-# EXPERIENCE TIMELINE DETECTION
-# ===============================
-
-def extract_experience_timeline(text):
+def extract_experience(text):
 
     pattern = r"(20\d{2})\s*[-–]\s*(20\d{2}|present)"
 
     matches = re.findall(pattern, text.lower())
 
-    timeline = []
+    total = 0
 
     for start, end in matches:
 
+        start = int(start)
+
         if end == "present":
-            end_year = datetime.now().year
+            end = datetime.now().year
         else:
-            end_year = int(end)
+            end = int(end)
 
-        start_year = int(start)
-
-        duration = end_year - start_year
-
-        timeline.append({
-            "start": start_year,
-            "end": end,
-            "duration_years": duration
-        })
-
-    return timeline
-
-# ===============================
-# EXPERIENCE ESTIMATION
-# ===============================
-
-def estimate_total_experience(timeline):
-
-    if not timeline:
-        return 0
-
-    total = sum(t["duration_years"] for t in timeline)
+        total += end - start
 
     return total
 
-# ===============================
-# INTEGRITY ANALYSIS
-# ===============================
+# ------------------------------
+# GITHUB DETECTION
+# ------------------------------
 
-def integrity_analysis(text, detected_skills):
+def extract_github(text):
 
-    score = 100
-    alerts = []
+    match = re.search(r"github\.com/[A-Za-z0-9_-]+", text)
 
-    current_year = datetime.now().year
+    if match:
+        return "https://" + match.group()
+
+    return None
+
+# ------------------------------
+# GITHUB VERIFY
+# ------------------------------
+
+def verify_github(url):
+
+    if not url:
+        return {"verified": False}
+
+    try:
+
+        username = url.split("/")[-1]
+
+        api = f"https://api.github.com/users/{username}"
+
+        r = requests.get(api)
+
+        if r.status_code == 200:
+
+            data = r.json()
+
+            return {
+                "verified": True,
+                "repos": data["public_repos"],
+                "followers": data["followers"]
+            }
+
+    except:
+        pass
+
+    return {"verified": False}
+
+# ------------------------------
+# PROJECT AUTHENTICITY
+# ------------------------------
+
+def project_authenticity(text):
+
+    keywords = ["github","api","dataset","deployed","live"]
+
+    score = 0
+
+    found = []
+
     lower = text.lower()
 
-    claimed_years = re.findall(r"(\d+)\+?\s*(years|yrs)", lower)
-    claimed_years = [int(y[0]) for y in claimed_years]
+    for k in keywords:
 
-    for tech, release_year in TECH_HISTORY.items():
+        if k in lower:
+            score += 20
+            found.append(k)
 
-        if tech in lower and claimed_years:
+    return score, found
 
-            claim = max(claimed_years)
-            possible = current_year - release_year
+# ------------------------------
+# ATS MATCH
+# ------------------------------
 
-            if claim > possible:
+def ats_match(resume_skills, jd):
 
-                score -= 25
-                alerts.append(
-                    f"Impossible experience claim for {tech.upper()}"
-                )
+    if not jd:
+        return None, [], []
 
-    buzz_count = sum(lower.count(b) for b in BUZZWORDS)
+    jd_lower = jd.lower()
 
-    if buzz_count > 5:
+    jd_skills = []
 
-        score -= 10
-        alerts.append("High buzzword density")
+    for skill in COMMON_SKILLS:
 
-    skill_count = sum(len(v) for v in detected_skills.values())
+        if skill in jd_lower:
+            jd_skills.append(skill)
 
-    if skill_count > 15:
+    resume_set = set(resume_skills)
+    jd_set = set(jd_skills)
 
-        score -= 10
-        alerts.append("Too many skills listed (possible exaggeration)")
+    matched = resume_set.intersection(jd_set)
+    missing = jd_set - resume_set
 
-    return max(score,0), alerts
+    if len(jd_set) == 0:
+        return None, [], []
 
-# ===============================
-# RISK LEVEL ENGINE
-# ===============================
+    score = int(len(matched) / len(jd_set) * 100)
 
-def calculate_risk(score, alerts):
+    return score, list(matched), list(missing)
 
-    if score >= 85 and len(alerts) == 0:
-        return "LOW RISK"
+# ------------------------------
+# CANDIDATE SCORE
+# ------------------------------
 
-    if score >= 60:
-        return "MEDIUM RISK"
+def candidate_score(ats, exp, project_score, github):
 
-    return "HIGH RISK"
+    score = 0
 
-# ===============================
-# INTERVIEW QUESTION GENERATOR
-# ===============================
+    if ats:
+        score += ats * 0.5
 
-def generate_interview_questions(detected):
+    score += exp * 5
+    score += project_score
 
-    questions = []
+    if github.get("verified"):
+        score += 10
 
-    for stream, skills in detected.items():
+    return int(score)
 
-        for s in skills[:3]:
-
-            skill = s["skill"]
-
-            if skill == "python":
-                questions.append("Explain Python decorators and their use cases.")
-
-            elif skill == "react":
-                questions.append("How does React Virtual DOM improve performance?")
-
-            elif skill == "aws":
-                questions.append("How would you deploy a scalable backend on AWS?")
-
-            elif skill == "docker":
-                questions.append("What problem does Docker solve in deployments?")
-
-            elif skill == "machine learning":
-                questions.append("Explain bias vs variance tradeoff.")
-
-            else:
-                questions.append(f"Explain your practical experience with {skill}.")
-
-    return questions[:5]
-
-# ===============================
+# ------------------------------
 # MAIN PARSER
-# ===============================
+# ------------------------------
 
 def parse_resume(file_bytes, job_description=None):
 
     text = extract_text_from_pdf(file_bytes)
 
-    if not text.strip():
+    if not text:
         return {"error":"No text extracted"}
 
     basic = extract_basic_info(text)
 
-    sections = extract_sections(text)
+    skills = detect_skills(text)
 
-    detected_skills = detect_skills(text)
+    experience = extract_experience(text)
 
-    primary_stream = detect_primary_stream(detected_skills)
+    ats_score, matched, missing = ats_match(skills, job_description)
 
-    timeline = extract_experience_timeline(text)
+    github = extract_github(text)
 
-    total_exp = estimate_total_experience(timeline)
+    github_data = verify_github(github)
 
-    integrity_score, alerts = integrity_analysis(text, detected_skills)
+    project_score, project_signals = project_authenticity(text)
 
-    risk_level = calculate_risk(integrity_score, alerts)
+    final_score = candidate_score(
+        ats_score,
+        experience,
+        project_score,
+        github_data
+    )
 
-    questions = generate_interview_questions(detected_skills)
+    questions = [
+        f"Explain your experience with {s}"
+        for s in skills[:5]
+    ]
 
     return {
 
         "candidate_profile": basic,
 
-        "primary_stream": primary_stream,
+        "skills_detected": skills,
 
-        "sections": sections,
+        "experience_years_estimated": experience,
 
-        "experience_timeline": timeline,
+        "ats_match_score": ats_score,
 
-        "experience_years_estimated": total_exp,
+        "matched_skills": matched,
 
-        "skills_detected": dict(detected_skills),
+        "missing_skills": missing,
 
-        "integrity_score": integrity_score,
+        "github_profile": github,
 
-        "risk_alerts": alerts,
+        "github_data": github_data,
 
-        "risk_level": risk_level,
+        "project_authenticity_score": project_score,
+
+        "project_signals": project_signals,
+
+        "candidate_score": final_score,
 
         "interview_questions": questions
     }

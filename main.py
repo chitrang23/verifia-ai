@@ -1,31 +1,35 @@
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, UploadFile, File, Form
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
-from api.routes_resume import router as resume_router
-from api.routes_interview import router as interview_router
+from api.routes_ranking import router as ranking_router
 
 from model.session import InterviewSession
 from services.vision_engine import analyze_gaze
+from services.resume_parser import parse_resume
 
 import cv2
 import numpy as np
 import base64
 
 
+# =====================================================
+# FASTAPI APP
+# =====================================================
+
 app = FastAPI(title="Verifica-AI")
 
-# Include modular routers
-app.include_router(resume_router)
-app.include_router(interview_router)
+# Include ranking router
+app.include_router(ranking_router)
 
-# Templates directory
+# Templates
 templates = Jinja2Templates(directory="templates")
 
 
 # =====================================================
 # LANDING PAGE
 # =====================================================
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_home(request: Request):
     return templates.TemplateResponse(
@@ -37,6 +41,7 @@ async def serve_home(request: Request):
 # =====================================================
 # RESUME PAGE
 # =====================================================
+
 @app.get("/resume", response_class=HTMLResponse)
 async def serve_resume(request: Request):
     return templates.TemplateResponse(
@@ -46,8 +51,21 @@ async def serve_resume(request: Request):
 
 
 # =====================================================
+# RANKING PAGE (MULTI RESUME ATS)
+# =====================================================
+
+@app.get("/ranking", response_class=HTMLResponse)
+async def serve_ranking(request: Request):
+    return templates.TemplateResponse(
+        "ranking.html",
+        {"request": request}
+    )
+
+
+# =====================================================
 # INTERVIEW PAGE
 # =====================================================
+
 @app.get("/interview", response_class=HTMLResponse)
 async def serve_interview(request: Request):
     return templates.TemplateResponse(
@@ -57,16 +75,48 @@ async def serve_interview(request: Request):
 
 
 # =====================================================
-# VISION WEBSOCKET
+# RESUME ANALYSIS API
 # =====================================================
+
+@app.post("/verify")
+async def analyze_resume(
+    file: UploadFile = File(...),
+    job_description: str = Form(None)
+):
+
+    try:
+
+        file_bytes = await file.read()
+
+        result = parse_resume(
+            file_bytes,
+            job_description
+        )
+
+        return JSONResponse(result)
+
+    except Exception as e:
+
+        return JSONResponse({
+            "error": str(e)
+        })
+
+
+# =====================================================
+# INTERVIEW VISION WEBSOCKET
+# =====================================================
+
 @app.websocket("/ws/vision")
 async def vision_socket(websocket: WebSocket):
+
     await websocket.accept()
 
     session = InterviewSession()
 
     try:
+
         while True:
+
             data = await websocket.receive_text()
 
             if "," not in data:
@@ -74,8 +124,8 @@ async def vision_socket(websocket: WebSocket):
 
             _, encoded = data.split(",", 1)
 
-            # Decode image safely
             try:
+
                 nparr = np.frombuffer(
                     base64.b64decode(encoded),
                     np.uint8
@@ -92,12 +142,15 @@ async def vision_socket(websocket: WebSocket):
             except Exception:
                 continue
 
-            # Analyze gaze
+            # AI gaze analysis
             status, delta = analyze_gaze(frame, session)
 
             # Update integrity score
             session.integrity_score += delta
-            session.integrity_score = max(0, min(100, session.integrity_score))
+            session.integrity_score = max(
+                0,
+                min(100, session.integrity_score)
+            )
 
             await websocket.send_json({
                 "status": status,
