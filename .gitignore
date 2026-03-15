@@ -1,6 +1,8 @@
-venv/
+verifica_env/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
-.idea/
-.vscode/
+*.log
+.DS_Store

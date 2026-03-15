@@ -81,6 +81,14 @@ color:#22c55e;
 font-weight:bold;
 }
 
+.repo-box{
+margin-top:10px;
+padding:10px;
+background:#020617;
+border:1px solid #1e293b;
+border-radius:6px;
+}
+
 hr{
 border:0;
 border-top:1px solid #1e293b;
@@ -145,6 +153,26 @@ const data=await res.json();
 
 document.getElementById("loading").style.display="none";
 
+let githubReposHTML="No repository contribution data found";
+
+if(data.github_contribution_analysis && data.github_contribution_analysis.length>0){
+
+githubReposHTML=data.github_contribution_analysis.map(repo=>`
+
+<div class="repo-box">
+
+<span class="label">Repository:</span> ${repo.repo} <br>
+<span class="label">Total Commits:</span> ${repo.total_commits} <br>
+<span class="label">Candidate Commits:</span> ${repo.candidate_commits} <br>
+<span class="label">Contribution Percentage:</span> ${repo.contribution_percent}% <br>
+<span class="label">Authentic Contributor:</span> ${repo.authentic}
+
+</div>
+
+`).join("");
+
+}
+
 document.getElementById("output").innerHTML=`
 
 <div class="section">
@@ -153,27 +181,33 @@ document.getElementById("output").innerHTML=`
 <span class="label">Name:</span> ${data.candidate_profile?.name || "Unknown"} <br>
 <span class="label">Email:</span> ${data.candidate_profile?.email || "Not found"} <br>
 <span class="label">Phone:</span> ${data.candidate_profile?.phone || "Not found"} <br>
+
 </div>
 
 <hr>
 
 <div class="section">
+
 <h3>Experience</h3>
 
 <span class="label">Estimated Experience:</span> ${data.experience_years_estimated ?? "N/A"} years
+
 </div>
 
 <hr>
 
 <div class="section">
+
 <h3>ATS Analysis</h3>
 
 <span class="label">ATS Score:</span> ${data.ats_match_score ?? "N/A"} %
+
 </div>
 
 <hr>
 
 <div class="section">
+
 <h3>Skills</h3>
 
 <span class="label">Matched Skills:</span><br>
@@ -194,31 +228,46 @@ ${(data.skills_detected || []).join(", ") || "None"}
 <hr>
 
 <div class="section">
+
 <h3>GitHub Verification</h3>
 
 <span class="label">GitHub Profile:</span> ${data.github_profile || "Not Found"} <br>
-<span class="label">Verified:</span> ${data.github_data?.verified ?? "Unknown"}
+<span class="label">Verified:</span> ${data.github_data?.verified ?? "Unknown"} <br>
+<span class="label">Public Repositories:</span> ${data.github_data?.repos ?? "N/A"} <br>
+<span class="label">Followers:</span> ${data.github_data?.followers ?? "N/A"} 
+
+<br><br>
+
+<h4>Repository Contribution Analysis</h4>
+
+${githubReposHTML}
+
 </div>
 
 <hr>
 
 <div class="section">
+
 <h3>Project Authenticity</h3>
 
 <span class="label">Authenticity Score:</span> ${data.project_authenticity_score ?? "N/A"}
+
 </div>
 
 <hr>
 
 <div class="section">
+
 <h3>Candidate Score</h3>
 
 <span class="label">Final Candidate Score:</span> ${data.candidate_score ?? "N/A"}
+
 </div>
 
 <hr>
 
 <div class="section">
+
 <h3>AI Interview Questions</h3>
 
 ${(data.interview_questions || []).join("<br>") || "No questions generated"}
