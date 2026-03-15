@@ -17,9 +17,19 @@ padding:40px;
 .card{
 background:#0f172a;
 padding:30px;
-width:650px;
+width:700px;
 margin:auto;
 border-radius:10px;
+box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+h2{
+margin-bottom:20px;
+text-align:center;
+}
+
+input{
+margin-top:10px;
 }
 
 textarea{
@@ -30,6 +40,7 @@ background:#020617;
 color:white;
 border:1px solid #1e293b;
 padding:10px;
+border-radius:5px;
 }
 
 button{
@@ -41,10 +52,39 @@ border:none;
 color:white;
 font-weight:bold;
 cursor:pointer;
+border-radius:6px;
+}
+
+button:hover{
+background:#2563eb;
+}
+
+#loading{
+display:none;
+margin-top:20px;
+color:#38bdf8;
 }
 
 #output{
 margin-top:30px;
+background:#020617;
+padding:20px;
+border-radius:8px;
+}
+
+.section{
+margin-top:20px;
+}
+
+.label{
+color:#22c55e;
+font-weight:bold;
+}
+
+hr{
+border:0;
+border-top:1px solid #1e293b;
+margin:15px 0;
 }
 
 </style>
@@ -55,13 +95,15 @@ margin-top:30px;
 
 <div class="card">
 
-<h2>Resume Intelligence Audit</h2>
+<h2>Verifia AI Resume Intelligence</h2>
 
-<input type="file" id="pdfFile">
+<input type="file" id="pdfFile" accept=".pdf,.doc,.docx">
 
 <textarea id="jobDesc" placeholder="Paste Job Description (optional)"></textarea>
 
 <button onclick="analyze()">Analyze Resume</button>
+
+<div id="loading">Analyzing Resume with AI...</div>
 
 <div id="output"></div>
 
@@ -74,80 +116,125 @@ async function analyze(){
 const file=document.getElementById("pdfFile").files[0];
 
 if(!file){
-
-alert("Upload resume first");
+alert("Please upload a resume first");
 return;
-
 }
+
+document.getElementById("loading").style.display="block";
+document.getElementById("output").innerHTML="";
 
 const fd=new FormData();
 
 fd.append("file",file);
 
 const jd=document.getElementById("jobDesc").value;
-
 fd.append("job_description",jd);
 
-const res=await fetch("/verify",{
+try{
 
+const res=await fetch("/verify",{
 method:"POST",
 body:fd
-
 });
+
+if(!res.ok){
+throw new Error("Server error");
+}
 
 const data=await res.json();
 
+document.getElementById("loading").style.display="none";
+
 document.getElementById("output").innerHTML=`
 
-<hr>
+<div class="section">
+<h3>Candidate Profile</h3>
 
-<b>Name:</b> ${data.candidate_profile.name || "Unknown"} <br>
-<b>Email:</b> ${data.candidate_profile.email || "Not found"} <br>
-<b>Phone:</b> ${data.candidate_profile.phone || "Not found"} <br>
-
-<hr>
-
-<b>Experience:</b> ${data.experience_years_estimated} years
+<span class="label">Name:</span> ${data.candidate_profile?.name || "Unknown"} <br>
+<span class="label">Email:</span> ${data.candidate_profile?.email || "Not found"} <br>
+<span class="label">Phone:</span> ${data.candidate_profile?.phone || "Not found"} <br>
+</div>
 
 <hr>
 
-<b>ATS Score:</b> ${data.ats_match_score ?? "N/A"} %
+<div class="section">
+<h3>Experience</h3>
+
+<span class="label">Estimated Experience:</span> ${data.experience_years_estimated ?? "N/A"} years
+</div>
 
 <hr>
 
-<b>Matched Skills:</b> ${(data.matched_skills||[]).join(", ")}
+<div class="section">
+<h3>ATS Analysis</h3>
+
+<span class="label">ATS Score:</span> ${data.ats_match_score ?? "N/A"} %
+</div>
 
 <hr>
 
-<b>Missing Skills:</b> ${(data.missing_skills||[]).join(", ")}
+<div class="section">
+<h3>Skills</h3>
+
+<span class="label">Matched Skills:</span><br>
+${(data.matched_skills || []).join(", ") || "None"}
+
+<br><br>
+
+<span class="label">Missing Skills:</span><br>
+${(data.missing_skills || []).join(", ") || "None"}
+
+<br><br>
+
+<span class="label">Detected Skills:</span><br>
+${(data.skills_detected || []).join(", ") || "None"}
+
+</div>
 
 <hr>
 
-<b>Detected Skills:</b> ${(data.skills_detected||[]).join(", ")}
+<div class="section">
+<h3>GitHub Verification</h3>
+
+<span class="label">GitHub Profile:</span> ${data.github_profile || "Not Found"} <br>
+<span class="label">Verified:</span> ${data.github_data?.verified ?? "Unknown"}
+</div>
 
 <hr>
 
-<b>GitHub:</b> ${data.github_profile || "Not Found"}
+<div class="section">
+<h3>Project Authenticity</h3>
+
+<span class="label">Authenticity Score:</span> ${data.project_authenticity_score ?? "N/A"}
+</div>
 
 <hr>
 
-<b>GitHub Verified:</b> ${data.github_data.verified}
+<div class="section">
+<h3>Candidate Score</h3>
+
+<span class="label">Final Candidate Score:</span> ${data.candidate_score ?? "N/A"}
+</div>
 
 <hr>
 
-<b>Project Authenticity Score:</b> ${data.project_authenticity_score}
+<div class="section">
+<h3>AI Interview Questions</h3>
 
-<hr>
+${(data.interview_questions || []).join("<br>") || "No questions generated"}
 
-<b>Candidate Score:</b> ${data.candidate_score}
-
-<hr>
-
-<b>Interview Questions:</b>
-<br>
-${(data.interview_questions||[]).join("<br>")}
+</div>
 
 `;
+
+}catch(err){
+
+document.getElementById("loading").style.display="none";
+
+document.getElementById("output").innerHTML=
+"<p style='color:red'>Error analyzing resume. Please try again.</p>";
+
+}
 
 }
 

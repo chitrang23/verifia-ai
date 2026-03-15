@@ -3,7 +3,7 @@
 
 <head>
 
-<title>Resume Ranking Dashboard</title>
+<title>Verifia AI Leaderboard</title>
 
 <style>
 
@@ -14,38 +14,20 @@ font-family:Arial;
 padding:40px;
 }
 
-.card{
-background:#0f172a;
-padding:30px;
-border-radius:10px;
+table{
 width:700px;
 margin:auto;
+border-collapse:collapse;
 }
 
-input,textarea{
-width:100%;
-margin-top:10px;
-padding:10px;
-background:#020617;
-color:white;
+th,td{
 border:1px solid #1e293b;
-}
-
-button{
-margin-top:20px;
 padding:12px;
-width:100%;
-background:#3b82f6;
-border:none;
-color:white;
-font-weight:bold;
-cursor:pointer;
+text-align:center;
 }
 
-.rank{
-margin-top:15px;
-padding:10px;
-border-bottom:1px solid #1e293b;
+th{
+background:#1e293b;
 }
 
 </style>
@@ -54,77 +36,47 @@ border-bottom:1px solid #1e293b;
 
 <body>
 
-<div class="card">
+<h2 align="center">🏆 Verifia AI Candidate Ranking</h2>
 
-<h2>AI Resume Ranking System</h2>
+<table id="board">
 
-<input type="file" id="resumes" multiple>
+<tr>
+<th>Rank</th>
+<th>Name</th>
+<th>Email</th>
+<th>Score</th>
+</tr>
 
-<textarea id="jd" placeholder="Paste Job Description"></textarea>
-
-<button onclick="rank()">Rank Candidates</button>
-
-<div id="results"></div>
-
-</div>
+</table>
 
 <script>
 
-async function rank(){
+async function loadLeaderboard(){
 
-const files=document.getElementById("resumes").files
+const res = await fetch("/leaderboard")
 
-if(files.length==0){
-alert("Upload resumes")
-return
-}
+const data = await res.json()
 
-const fd=new FormData()
+let rows=""
 
-for(let f of files){
-fd.append("resumes",f)
-}
+data.leaderboard.forEach(c=>{
 
-fd.append("job_description",document.getElementById("jd").value)
-
-const res=await fetch("/rank-resumes",{
-method:"POST",
-body:fd
-})
-
-const data=await res.json()
-
-let html="<h3>Candidate Ranking</h3>"
-
-data.ranking.forEach((c,i)=>{
-
-html+=`
-
-<div class="rank">
-
-<b>${i+1}. ${c.name}</b>
-
-<br>
-
-Score: ${c.score}
-
-<br>
-
-Experience: ${c.experience} years
-
-<br>
-
-Skills: ${c.skills.join(", ")}
-
-</div>
-
+rows += `
+<tr>
+<td>${c.rank}</td>
+<td>${c.name}</td>
+<td>${c.email}</td>
+<td>${c.score}</td>
+</tr>
 `
 
 })
 
-document.getElementById("results").innerHTML=html
+document.getElementById("board").innerHTML += rows
 
 }
+
+loadLeaderboard()
 
 </script>
 

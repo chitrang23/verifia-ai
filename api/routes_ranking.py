@@ -1,31 +1,49 @@
-from fastapi import APIRouter, UploadFile, File, Form
-from services.resume_parser import parse_resume
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+import json
+import os
 
 router = APIRouter()
 
-@router.post("/rank-resumes")
-async def rank_resumes(
-    files: list[UploadFile] = File(...),
-    job_description: str = Form(None)
-):
+RANK_FILE = "ranking_data.json"
 
-    candidates = []
 
-    for file in files:
+# -----------------------------
+# LOAD RANKING
+# -----------------------------
+def load_ranking():
 
-        file_bytes = await file.read()
+    if not os.path.exists(RANK_FILE):
+        return []
 
-        result = parse_resume(file_bytes, job_description)
+    try:
+        with open(RANK_FILE, "r") as f:
+            return json.load(f)
 
-        candidates.append(result)
+    except:
+        return []
 
-    # sort candidates by score
-    ranked = sorted(
-        candidates,
-        key=lambda x: x.get("candidate_score", 0),
+
+# -----------------------------
+# SAVE RANKING
+# -----------------------------
+def save_ranking(data):
+
+    with open(RANK_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# -----------------------------
+# GET LEADERBOARD
+# -----------------------------
+@router.get("/leaderboard")
+def leaderboard():
+
+    data = load_ranking()
+
+    data.sort(
+        key=lambda x: x["score"],
         reverse=True
     )
 
-    return {
-        "ranked_candidates": ranked
-    }
+    return JSONResponse(data)

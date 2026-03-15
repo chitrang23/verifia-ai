@@ -8,6 +8,9 @@ from model.session import InterviewSession
 from services.vision_engine import analyze_gaze
 from services.resume_parser import parse_resume
 
+# NEW: store candidates for leaderboard
+from core.candidate_store import save_candidate
+
 import cv2
 import numpy as np
 import base64
@@ -93,6 +96,25 @@ async def analyze_resume(
             job_description
         )
 
+        # =================================================
+        # SAVE CANDIDATE FOR RANKING SYSTEM
+        # =================================================
+
+        try:
+
+            candidate_profile = result.get("candidate_profile", {})
+
+            candidate = {
+                "name": candidate_profile.get("name", "Unknown"),
+                "email": candidate_profile.get("email", "Unknown"),
+                "score": result.get("candidate_score", 0)
+            }
+
+            save_candidate(candidate)
+
+        except Exception as e:
+            print("Ranking storage error:", str(e))
+
         return JSONResponse(result)
 
     except Exception as e:
@@ -147,6 +169,7 @@ async def vision_socket(websocket: WebSocket):
 
             # Update integrity score
             session.integrity_score += delta
+
             session.integrity_score = max(
                 0,
                 min(100, session.integrity_score)
